@@ -45,4 +45,3 @@ except:
     exit()
 
 read_file(phandle)
-
