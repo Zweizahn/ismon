@@ -6,7 +6,7 @@
 # Reading input file
 #
 #
-
+from gui import MyWindow, MyStream
 
 __author__ = 'Erik'
 __version__ = 'v0.1'
@@ -14,6 +14,23 @@ __version__ = 'v0.1'
 import sys
 from collections import defaultdict
 from collections import OrderedDict
+from PyQt4 import QtGui
+
+
+def get_timestamp(words):
+    if len(words) > 5:
+        #        timestamp = words[2] + '-' + words[3] + '-' + words[4]
+        timestamp = '-'.join(words[2:5])
+    else:
+        timestamp = ''
+    return timestamp
+
+
+def sorted_index(whatever):
+    ordered = list()
+    for key in self.time:
+        ordered.append(key)
+    return ordered.sort()
 
 
 class Data(object):
@@ -25,14 +42,20 @@ class Data(object):
         self.sums = defaultdict(dict)
 
     def __str__(self):
-        for timestamp in self.time:
+        ordered = list()
+        for key in self.time:
+            ordered.append(key)
+            #    ordered = self.sortedIndex(self.time)
+        ordered.sort()
+        #      ordered = sorted_index(self.time)
+        for timestamp in ordered:
             print('\nTimestamp: {}'.format(timestamp))
             timelist = self.time[timestamp]
             for key, value in timelist.items():
                 output = ''
                 for k, v in value.items():
                     output += str(v) + ' '
-                #                print(key, value['read'], value['write'], value['lread'], value['lwrite'])
+                # print(key, value['read'], value['write'], value['lread'], value['lwrite'])
                 print(key, output)
             output = ''
             for k, v in self.sums[timestamp].items():
@@ -41,17 +64,7 @@ class Data(object):
             # dummy = input("Press key")
         return ''
 
-    def keyDisk(self, words):
-        return words[0] + '-' + words[1] + '-' + words[2] + '-' + words[3]
-
-    def get_Timestamp(self, words):
-        if len(words) > 5:
-            timestamp = words[2] + '-' + words[3] + '-' + words[4]
-        else:
-            timestamp = ''
-        return timestamp
-
-    def enter_Data(self, timestamp, key, read, write, index):
+    def enter_data(self, timestamp, key, read, write, index):
         """
         Enters data in the local data structure
         :param timestamp:
@@ -76,8 +89,8 @@ class Data(object):
         #     return
         self.time[timestamp][key][index1] = read
         self.time[timestamp][key][index2] = write
-        self.sums[timestamp][index3] = self.sums[timestamp].get(index3,0) + read
-        self.sums[timestamp][index4] = self.sums[timestamp].get(index4,0) + write
+        self.sums[timestamp][index3] = self.sums[timestamp].get(index3, 0) + read
+        self.sums[timestamp][index4] = self.sums[timestamp].get(index4, 0) + write
 
     def latency(self, value):
         """
@@ -119,7 +132,7 @@ class Data(object):
             words = line.split()
             if words[0].endswith(':'):
                 # Check if line contains timestamp
-                timestamp = self.get_Timestamp(words)
+                timestamp = get_timestamp(words)
             elif 'Pnd' in words:
                 # Pending commands switched on, assuming it won't be switched off again
                 pending = True
@@ -131,11 +144,11 @@ class Data(object):
                     read = self.latency(words[4])
                     write = self.latency(words[5])
                     index = 'l'
-                #                    self.enter_Data(timestamp, key, read, write, 'lread', 'lwrite')
+                # self.enter_Data(timestamp, key, read, write, 'lread', 'lwrite')
                 elif length == 9:
                     if words[1] == '0':
                         # ACLS: absolut, no pending commands, assuming no vdev is called '0'
-                        key = self.keyDisk(words)
+                        key = '-'.join(words[:4])
                         read = int(words[4])
                         write = int(words[5])
                     else:
@@ -144,12 +157,12 @@ class Data(object):
                         read = int(words[3])
                         write = int(words[4])
                     index = 'a'
-                #                    self.enter_Data(timestamp, key, read, write, 'read', 'write')
+                # self.enter_Data(timestamp, key, read, write, 'read', 'write')
                 elif length == 10:
                     if pending:
                         if words[1] == '0':
                             # ACLS: absolut with pending commands, assuming no vdev is called '0'
-                            key = self.keyDisk(words)
+                            key = '-'.join(words[:4])
                             read = int(words[5])
                             write = int(words[6])
                         else:
@@ -158,24 +171,34 @@ class Data(object):
                             read = int(words[4])
                             write = int(words[5])
                         index = 'a'
-                    #                        self.enter_Data(timestamp, key, read, write, 'read', 'write')
+                    # self.enter_Data(timestamp, key, read, write, 'read', 'write')
                     else:
                         # physical latency
-                        key = self.keyDisk(words)
+                        key = '-'.join(words[:4])
                         read = self.latency(words[6])
                         write = self.latency(words[7])
                         index = 'l'
-                    #                        self.enter_Data(timestamp, key, read, write, 'lread', 'lwrite')
+                        #                        self.enter_Data(timestamp, key, read, write, 'lread', 'lwrite')
                 else:
                     # Should not happen
                     print("Somethings wrong line {}".format(linenumber))
                     continue
-                self.enter_Data(timestamp, key, read, write, index)
+                self.enter_data(timestamp, key, read, write, index)
         print('Number of lines read: {}'.format(linenumber))
 
 
 ########################################################################
 if __name__ == "__main__":
+    app = QtGui.QApplication(sys.argv)
+    app.setApplicationName('MyWindow')
+
+    # pdb.run('main = MyWindow()')
+    main = MyWindow()
+
+    myStream = MyStream()
+    myStream.message.connect(main.on_myStream_message)
+    sys.stdout = myStream
+
     if len(sys.argv) < 3:
         print("Wrong invocation of program:")
         print("  ismon-read-physical ipstor_ismon.Plog ipstor_ismon.PYlog")
@@ -187,3 +210,5 @@ if __name__ == "__main__":
     log.read(sys.argv[2])
     print(log)
 # print(ylog)
+
+sys.exit(app.exec_())
