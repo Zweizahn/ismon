@@ -10,7 +10,6 @@
 
 import sys
 from collections import defaultdict
-from collections import OrderedDict
 from PyQt4 import QtGui
 from gui import MyWindow
 from gui import MyStream
@@ -29,12 +28,6 @@ def get_timestamp(words):
     return timestamp
 
 
-def sorted_index(whatever):
-    ordered = list()
-    for key in self.time:
-        ordered.append(key)
-    return ordered.sort()
-
 
 # classes
 class Data(object):
@@ -42,32 +35,25 @@ class Data(object):
     """
 
     def __init__(self):
-        self.time = OrderedDict(defaultdict(list))
+        self.time = defaultdict(dict)
         self.sums = defaultdict(dict)
 
     def __str__(self):
-        ordered = list()
-        for key in self.time:
-            ordered.append(key)
-        ordered.sort()
-        #      ordered = sorted_index(self.time)
-        for timestamp in ordered:
+        # Create a sorted index of the timestamps
+        index1 = [(key) for key in self.time]
+        index1.sort()
+        for timestamp in index1:
             print('\nTimestamp: {}'.format(timestamp))
             timelist = self.time[timestamp]
             for key, value in timelist.items():
-                output = ''
-                header = ''
-                for k, v in value.items():
-                    header += str(k) + ' '
-                    output += str(v) + ' '
-                print(header)
-                print(key, output)
-            output = ''
-            for k, v in self.sums[timestamp].items():
-                header += str(k) + ' '
-                output += str(v) + ' '
-            print(header)
-            print('Sum: ' + output)
+                print('            ' + ''.join('{:>10s}'.format(k) for k in value))
+                print('{:12s}'.format(key), end='')
+                print(''.join('{:10d}'.format(v) for v in value.values()))
+            print('            ' + ''.join('{:>10s}'.format(k) for k in self.sums[timestamp]))
+            print('Sum         ' + ''.join('{:10d}'.format(v) for v in self.sums[timestamp].values()))
+            number = len(timelist)
+            average = [(v / number) for v in self.sums[timestamp].values()]
+            print('Average     ' + ''.join('{:10.0f}'.format(v) for v in average))
         return ''
 
     def enter_data(self, timestamp, key, read, write, index):
@@ -79,7 +65,6 @@ class Data(object):
         :param write:
         :return:
         """
-        # print(timestamp, key, read, write)
         index1 = index + 'read'
         index2 = index + 'write'
         index3 = index + 'readsum'
@@ -89,10 +74,6 @@ class Data(object):
             self.time[timestamp][key] = dict()
             self.sums[timestamp][index3] = 0
             self.sums[timestamp][index4] = 0
-        # elif key in self.time[timestamp]:
-        #     # This should only happen when we have duplicate data e.g. sorted for read and sorted for write
-        #     # or ismon put out data twice for 1 seconds. Will ignore that data
-        #     return
         self.time[timestamp][key][index1] = read
         self.time[timestamp][key][index2] = write
         self.sums[timestamp][index3] = self.sums[timestamp].get(index3, 0) + read
