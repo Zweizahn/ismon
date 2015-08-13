@@ -46,25 +46,23 @@ class Data(object):
             print('\nTimestamp: {}'.format(timestamp))
             timelist = self.time[timestamp]
             for key, value in timelist.items():
-                print('            ' + ''.join('{:>10s}'.format(k) for k in value))
+                dummy = sorted(value)
+                print('            ' + ''.join('{:>10s}'.format(k) for k in dummy))
                 print('{:12s}'.format(key), end='')
-                print(''.join('{:10d}'.format(v) for v in value.values()))
-            print('            ' + ''.join('{:>10s}'.format(k) for k in self.sums[timestamp]))
-            print('Sum         ' + ''.join('{:10d}'.format(v) for v in self.sums[timestamp].values()))
+                print(''.join('{:10d}'.format(value[v]) for v in dummy))
+            dummy = sorted(self.sums[timestamp])
+            print('            ' + ''.join('{:>10s}'.format(k) for k in dummy))
+            print('Sum         ' + ''.join('{:10d}'.format(self.sums[timestamp][v]) for v in dummy))
             number = len(timelist)
-            average = [(v / number) for v in self.sums[timestamp].values()]
+            dummy = sorted(self.sums[timestamp])
+            average = [(self.sums[timestamp][v] / number) for v in dummy]
             print('Average     ' + ''.join('{:10.0f}'.format(v) for v in average))
         return ''
 
     def enter_data(self, timestamp, key, read, write, index):
-        """
-        Enters data in the local data structure
-        :param timestamp:
-        :param key:
-        :param read:
-        :param write:
-        :return:
-        """
+        # Ignore if both values are 0
+        if read == 0 and write == 0: return
+
         index1 = index + 'read'
         index2 = index + 'write'
         index3 = index + 'readsum'
@@ -78,6 +76,7 @@ class Data(object):
         self.time[timestamp][key][index2] = write
         self.sums[timestamp][index3] = self.sums[timestamp].get(index3, 0) + read
         self.sums[timestamp][index4] = self.sums[timestamp].get(index4, 0) + write
+        return
 
     def latency(self, value):
         """
