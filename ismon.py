@@ -6,17 +6,20 @@
 # Reading input file
 #
 #
-from gui import MyWindow, MyStream
 
-__author__ = 'Erik'
-__version__ = 'v0.1'
 
 import sys
 from collections import defaultdict
 from collections import OrderedDict
 from PyQt4 import QtGui
+from gui import MyWindow
+from gui import MyStream
+
+__author__ = 'Erik'
+__version__ = 'v0.1'
 
 
+# functions
 def get_timestamp(words):
     if len(words) > 5:
         #        timestamp = words[2] + '-' + words[3] + '-' + words[4]
@@ -33,6 +36,7 @@ def sorted_index(whatever):
     return ordered.sort()
 
 
+# classes
 class Data(object):
     """ Contains the main data structure
     """
@@ -45,7 +49,6 @@ class Data(object):
         ordered = list()
         for key in self.time:
             ordered.append(key)
-            #    ordered = self.sortedIndex(self.time)
         ordered.sort()
         #      ordered = sorted_index(self.time)
         for timestamp in ordered:
@@ -53,15 +56,18 @@ class Data(object):
             timelist = self.time[timestamp]
             for key, value in timelist.items():
                 output = ''
+                header = ''
                 for k, v in value.items():
+                    header += str(k) + ' '
                     output += str(v) + ' '
-                # print(key, value['read'], value['write'], value['lread'], value['lwrite'])
+                print(header)
                 print(key, output)
             output = ''
             for k, v in self.sums[timestamp].items():
+                header += str(k) + ' '
                 output += str(v) + ' '
+            print(header)
             print('Sum: ' + output)
-            # dummy = input("Press key")
         return ''
 
     def enter_data(self, timestamp, key, read, write, index):
