@@ -1,10 +1,9 @@
-__author__ = 'Erik'
-__version__ = 'v0.1'
-__last_changed__ = 'Aug 12'
-
 import sys
 from PyQt4 import QtGui, QtCore
-
+from globals import *
+from globals import __version__
+from globals import __author__
+from globals import __last_changed__
 
 
 ############## Classes for GUI

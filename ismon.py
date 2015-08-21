@@ -9,13 +9,12 @@
 
 
 import sys
+import csv
 from collections import defaultdict
 from PyQt4 import QtGui
 from gui import MyWindow
 from gui import MyStream
-
-__author__ = 'Erik'
-__version__ = 'v0.1'
+from datetime import datetime
 
 
 # functions
@@ -28,7 +27,6 @@ def get_timestamp(words):
     return timestamp
 
 
-
 # classes
 class Data(object):
     """ Contains the main data structure
@@ -37,18 +35,20 @@ class Data(object):
     def __init__(self):
         self.time = defaultdict(dict)
         self.sums = defaultdict(dict)
+        self.header = ['timestamp', 'device', 'aread', 'awrite', 'lread', 'lwrite']
 
     def __str__(self):
         # Create a sorted index of the timestamps
         index1 = [(key) for key in self.time]
         index1.sort()
         for timestamp in index1:
+            # run through all timestamps
             print('\nTimestamp: {}'.format(timestamp))
             timelist = self.time[timestamp]
             for key, value in timelist.items():
                 dummy = sorted(value)
                 print('            ' + ''.join('{:>10s}'.format(k) for k in dummy))
-                print('{:12s}'.format(key), end='')
+                print('{:12s}'.format(str(key)), end='')
                 print(''.join('{:10d}'.format(value[v]) for v in dummy))
             dummy = sorted(self.sums[timestamp])
             print('            ' + ''.join('{:>10s}'.format(k) for k in dummy))
@@ -172,6 +172,52 @@ class Data(object):
                 self.enter_data(timestamp, key, read, write, index)
         print('Number of lines read: {}'.format(linenumber))
 
+    def max_latency(self):
+        # Runs though the data structure to find timestamp and disk/vdev with highest read + write latency
+        maxtimew = 0
+        maxtimer = 0
+        maxwrite = 0
+        maxread = 0
+        maxkeyw = 0
+        maxkeyr = 0
+
+        for time in self.time:
+            for key in self.time[time]:
+                try:
+                    read = self.time[time][key]['lread']
+                    write = self.time[time][key]['lwrite']
+                except:
+                    continue
+                else:
+                    if read > maxread:
+                        maxread = read
+                        maxtimer = time
+                        maxkeyr = key
+                    if write > maxwrite:
+                        maxwrite = write
+                        maxtimew = time
+                        maxkeyw = key
+
+        return maxtimer, maxtimew, maxread, maxwrite, maxkeyr, maxkeyw
+
+    def write_csv(self, prefix):
+        time1 = str(datetime.now())
+        time2 = time1.replace(" ", "_")
+        time = time2.replace(":", "-")
+        filename = "{0:}-{1:}.txt".format(prefix, time)
+
+        with open(filename, 'x', newline='') as f:
+            f_csv = csv.writer(f)
+            f_csv.writerow(self.header)
+            for time in self.time:
+                for key in self.time[time]:
+                    awrite = self.time[time][key].get('awrite', 'N/A')
+                    lwrite = self.time[time][key].get('lwrite', 'N/A')
+                    aread = self.time[time][key].get('aread', 'N/A')
+                    lread = self.time[time][key].get('lread', 'N/A')
+                    row = [time, key, aread, awrite, lread, lwrite]
+                    f_csv.writerow(row)
+
 
 ########################################################################
 if __name__ == "__main__":
@@ -195,6 +241,10 @@ if __name__ == "__main__":
     log.read(sys.argv[1])
     log.read(sys.argv[2])
     print(log)
-# print(ylog)
+    maxtimer, maxtimew, maxread, maxwrite, maxkeyr, maxkeyw = log.max_latency()
+    print('Max read latency:  {0:10s} {1:10s} {2:5d}ms'.format(maxtimer, str(maxkeyr), int(maxread)))
+    print('Max write latency: {0:10s} {1:10s} {2:5d}ms'.format(maxtimew, str(maxkeyw), int(maxwrite)))
+    # print(ylog)
+    log.write_csv('ismon')
 
-sys.exit(app.exec_())
+    sys.exit(app.exec_())
